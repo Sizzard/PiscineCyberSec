@@ -11,7 +11,7 @@ class Spider:
         self.given_url = given_url
         self.recursive = recursive
         if not recursive:
-            self.max_depth = 1
+            self.max_depth = 2
         else:
             self.max_depth = 5
         self.path = path
@@ -23,11 +23,6 @@ class Spider:
         print("Max depth = ", self.max_depth)
         print("Folder = ", self.path)
         self.createFolder()
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
         self.recurse(self.given_url, 1)
 
     def createFolder(self):
@@ -48,13 +43,14 @@ class Spider:
         if level == self.max_depth or url in self.visited:
             return
 
-        self.visited.append(url)
+        if url not in self.visited
+            self.visited.append(url)
         
         soup = self.requestSite(url)
         images_url = []
         self.parseImages(soup, url,images_url)
-        for image in images_url:
-            print(image)
+        # for image in images_url:
+        #     print(image)
         sites_url = []
         self.parseLinks(soup, url, sites_url)
         self.saveImages(images_url)
@@ -65,7 +61,7 @@ class Spider:
             self.recurse(site_url, level)
 
     def requestSite(self, url):
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url)
         if response.status_code != 200:
             print("Invalid URL, status code : ", response.status_code)
             raise Exception("Invalid URL")
@@ -99,7 +95,8 @@ class Spider:
         for image in images_url:
             if image.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
                 try:
-                    response = requests.get(image, headers=self.headers)
+                    print("URL of image downloading : ", image)
+                    response = requests.get(image)
                     if response.status_code != 200:
                         raise Exception("Can't get image") 
                     x = re.search(r"[^/]+$", image)
