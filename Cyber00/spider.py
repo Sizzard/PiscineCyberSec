@@ -14,11 +14,3 @@ if __name__ == "__main__":
     spider = Spider(args.URL, args.recursive, args.length, args.path)
 
     urls = []
-
-    # for site_url in soup.find_all('a'):
-    #     if site_url.get('href'):
-    #         urls.append(site_url.get('href')) 
-
-    # for site_url in urls:
-    #     print(site_url)
-
