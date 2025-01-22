@@ -43,7 +43,7 @@ class Spider:
         if level == self.max_depth or url in self.visited:
             return
 
-        if url not in self.visited
+        if url not in self.visited:
             self.visited.append(url)
         
         soup = self.requestSite(url)
@@ -77,6 +77,11 @@ class Spider:
                 images_url[i] = "https:" + sub
             elif sub.startswith("/") is True:
                 images_url[i] = url + sub
+            elif sub.startswith("../") is True:
+                parsed_url = urlparse(url)
+                base_url = parsed_url.scheme + "://" + parsed_url.netloc
+                images_url.append(base_url + '/' + url)
+                images_url[i] = base_url + sub.replace("../", '/')
             else:
                 continue
 
@@ -103,6 +108,7 @@ class Spider:
                     if x:
                         file_name = x.group(0)
                         file_path = os.path.join(self.path, file_name)
+                        print(response.content)
                         with open(file_path, 'wb') as file:
                             file.write(response.content)
                         print(colored("Successfully downloaded : " + str(image), 'green'))
