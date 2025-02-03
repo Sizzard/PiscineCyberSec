@@ -12,5 +12,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     spider = Spider(args.URL, args.recursive, args.length, args.path)
-
-    urls = []
