@@ -67,8 +67,6 @@ def generate_TOTP(fileName):
     open_keys()
     key = decrypt_key()
 
-    print(key)
-
     try:
         int(key, 16)
         if len(str(key)) != 64:
@@ -106,8 +104,6 @@ if __name__ == "__main__":
     parser.add_argument('-g', "--generate", nargs='?')
     parser.add_argument('-k', "--keyfile", nargs='?')
     args = parser.parse_args()
-
-    # print(args.keyfile, args.generate)
 
     if not args.keyfile and not args.generate or args.keyfile and args.generate:
         err("error: either -k keyfile.key or -g keyfile.hex is needed")
