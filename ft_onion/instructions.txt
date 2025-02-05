@@ -1,0 +1,9 @@
+apt install nginx -y && apt install tor -y && apt install curl -y && apt install openssh-server
+
+
+COPY index.html dans /var/www/html/index.html
+COPY nginx.conf dans /etc/nginx/nginx.conf
+COPY sshd_config dans /etc/ssh/sshd_config
+COPY torrc dans /etc/tor/torrc
+
+cat /var/lib/tor/hidden_service/hostname
