@@ -1,10 +1,10 @@
 apt install nginx -y && apt install tor -y && apt install curl -y && apt install openssh-server
 
 mettre en place le serveur ssh
+COPY sshd_config dans /etc/ssh/sshd_config
 
 COPY index.html dans /var/www/html/index.html
 COPY nginx.conf dans /etc/nginx/nginx.conf
-COPY sshd_config dans /etc/ssh/sshd_config
 COPY torrc dans /etc/tor/torrc
 
 PORT FORWARD 4243 vers 4242
