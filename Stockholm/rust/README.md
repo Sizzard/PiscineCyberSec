@@ -11,7 +11,7 @@ Assurez-vous simplement d'avoir **Rust** et **Make** installés sur votre machin
 ## Lancer le programme
 Apres avoir fais make vous pouvez simplement faire ./exe pour lancer le chiffrement des donnees
 
-## Options
+## Comment l'utiliser
 Utilisation: exe [OPTIONS]
 
 Options:
