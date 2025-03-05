@@ -57,7 +57,7 @@ def ftp_monitor_callback(packet):
         log.warning(f"[{packet.time}] FTP packet captured:")
         if packet.haslayer(Raw):
             payload = packet[Raw].load.decode(errors="ignore")
-            if "RETR" in payload or "STOR" in payload:
+            if "RETR" in payload or "STOR" in payload or "STOU" in payload or "APPE" in payload:
                 log.warning(f"{payload}")
 
 def threaded_sniffing():

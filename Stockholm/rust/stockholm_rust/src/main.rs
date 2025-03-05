@@ -33,6 +33,18 @@ struct CipherItems {
 
 fn get_file_data(filepath: &PathBuf) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // println!("Trying to read : {}", filepath.display());
+    if let Ok(metadata) = std::fs::metadata(filepath) {
+        if metadata.len() > 1000000000 {
+            return Err("File too big".into());
+        }
+    };
+
+    let mut data: Vec<u8> = Vec::new();
+
+    if let Err(_) = data.try_reserve(1000000000) {
+        return Err("Can't allocate enough memory".into());
+    }
+
     let data = std::fs::read(filepath)?;
     // println!("Successfully got data from : {}", filepath.display());
 
@@ -142,34 +154,28 @@ fn decrypt(cipher: &mut dyn StreamCipher, data: &Vec<u8>, filepath: &PathBuf) ->
 }
 
 
-fn crypt(items: &CipherItems, filepath: &PathBuf, fn_ptr: fn(&PathBuf) -> PathBuf) -> Result<(), Box<dyn std::error::Error>>{
+fn crypt(items: &CipherItems, filepath: &PathBuf, encrypt_bool: bool) -> Result<String, Box<dyn std::error::Error>>{
     let mut cipher = ChaCha20::new(&items.key.into(), &items.nonce.into());
 
     let data = get_file_data(filepath)?;
 
     let data_to_write: Vec<u8>;
 
-    if fn_ptr == add_ft_ext {
-        data_to_write = match encrypt(&mut cipher, &data, filepath) {
-            Ok(data_to_write) => data_to_write,
-            Err(e) => {
-                // println!("{:?}", e);
-                return Err(e)
-            },
-        };
+    if encrypt_bool == true {
+        data_to_write = encrypt(&mut cipher, &data, filepath)?;
     }
     else {
-        data_to_write = match decrypt(&mut cipher, &data, filepath) {
-            Ok(data_to_write) => data_to_write,
-            Err(e) => {
-                // println!("{:?}", e);
-                return Err(e)
-            },
-        };
-    }   
+        data_to_write = decrypt(&mut cipher, &data, filepath)?;
+    }
 
+    let new_file_path;
 
-    let new_file_path = fn_ptr(filepath);
+    if encrypt_bool == true {
+        new_file_path = add_ft_ext(filepath);
+    }
+    else {
+        new_file_path = rm_ft_ext(filepath);
+    }
 
     let _delete_file = match handle_file(filepath, &new_file_path) {
         Ok(file) => file,
@@ -178,11 +184,19 @@ fn crypt(items: &CipherItems, filepath: &PathBuf, fn_ptr: fn(&PathBuf) -> PathBu
 
     write_file_data(&new_file_path, data_to_write)?;
 
-    if !items.silent {
-        println!("{} => {} successfully", filepath.display(), new_file_path.display());
-    }
+    let result = get_result(&filepath, &new_file_path);
 
-    Ok(())
+    Ok(result)
+}
+
+fn get_result(filepath: &PathBuf, new_filepath: &PathBuf) -> String {
+
+    if let Some(filepath_str) = filepath.to_str() {
+        if let Some(new_filepath_str) = new_filepath.to_str() {
+            return format!("{} => {} successfully", filepath_str, new_filepath_str);
+        }
+    }
+    return String::from("Can't convert filepath to string");
 }
 
 fn get_extensions() -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -293,10 +307,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
     for file in &valid_files {
         if args.reverse.is_some() {
-            _ = crypt(&items, &file, rm_ft_ext);
+            match crypt(&items, &file, false) {
+                Ok(success) => {
+                    if !items.silent {
+                        println!("{success}");
+                    }
+                },
+                Err(failure) => {
+                    if !items.silent {
+                        println!("{failure}");
+                    }
+                },
+            }
         }
         else {
-            _ = crypt(&items, &file, add_ft_ext);
+            match crypt(&items, &file, true) {
+                Ok(success) => {
+                    if !items.silent {
+                        println!("{success}");
+                    }
+                },
+                Err(failure) => {
+                    if !items.silent {
+                        println!("{failure}");
+                    }
+                },
+            }
         }
     }
 
