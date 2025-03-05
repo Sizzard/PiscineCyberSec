@@ -13,7 +13,7 @@ class Spider:
         if not recursive:
             self.max_depth = 2
         else:
-            self.max_depth = 5
+            self.max_depth = int(length) + 1
         self.path = path
         self.images_url = []
         self.sites_url = []
@@ -35,13 +35,14 @@ class Spider:
             print("Error on creating folder, it might not work")
 
     def recurse(self, url, level):
+
+        if level >= self.max_depth or url in self.visited:
+            return
+        
         print(colored('Level is : ' + str(level), 'cyan'))
         print(colored('URL is : ' + str(url), 'yellow'))
         print(colored('visited : ' + str(self.visited), 'cyan'))
         print()
-
-        if level == self.max_depth or url in self.visited:
-            return
 
         if url not in self.visited:
             self.visited.append(url)
@@ -102,13 +103,13 @@ class Spider:
                 try:
                     print("URL of image downloading : ", image)
                     response = requests.get(image)
-                    if response.status_code != 200:
-                        raise Exception("Can't get image") 
+                    if response.ok is not True:
+                        raise Exception(f"Can't get image : Code {response.status_code}") 
                     x = re.search(r"[^/]+$", image)
                     if x:
                         file_name = x.group(0)
                         file_path = os.path.join(self.path, file_name)
-                        print(response.content)
+                        # print(response.content)
                         with open(file_path, 'wb') as file:
                             file.write(response.content)
                         print(colored("Successfully downloaded : " + str(image), 'green'))
