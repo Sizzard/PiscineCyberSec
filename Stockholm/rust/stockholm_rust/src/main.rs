@@ -33,15 +33,30 @@ struct CipherItems {
 
 fn get_file_data(filepath: &PathBuf) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     // println!("Trying to read : {}", filepath.display());
-    if let Ok(metadata) = std::fs::metadata(filepath) {
-        if metadata.len() > 1000000000 {
-            return Err("File too big".into());
+    let file_len: usize;
+
+    let result = std::fs::metadata(filepath);
+
+    match result {
+        Ok(metadata) => {
+            if metadata.len() > 1000000000 {
+                return Err("File too big".into());
+            }
+            else {
+                file_len = metadata.len() as usize;
+            }
         }
-    };
+        Err(_e) => {
+            if let Some(filepath_str) = filepath.to_str() {
+                return Err(format!("Can't read file : {}", filepath_str).into());
+            }
+            return Err("Can't read file".into());
+        }
+    }
 
     let mut data: Vec<u8> = Vec::new();
 
-    if let Err(_) = data.try_reserve(1000000000) {
+    if let Err(_) = data.try_reserve(file_len + 100) {
         return Err("Can't allocate enough memory".into());
     }
 

@@ -46,12 +46,12 @@ def encrypt_key(fileName):
         file.write(encrypted)
 
 
-def decrypt_key():
+def decrypt_key(fileName):
     private_key, public_key = open_keys()
 
     decipher = PKCS1_OAEP.new(private_key)
 
-    with open ("ft_otp.key", "rb") as file:
+    with open (fileName, "rb") as file:
         encrypted = file.read()
 
     decrypted = decipher.decrypt(encrypted)
@@ -65,7 +65,7 @@ def err(errorMsg):
 def generate_TOTP(fileName):
 
     open_keys()
-    key = decrypt_key()
+    key = decrypt_key(fileName)
 
     try:
         int(key, 16)

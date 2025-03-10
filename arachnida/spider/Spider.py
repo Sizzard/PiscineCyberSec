@@ -46,8 +46,10 @@ class Spider:
 
         if url not in self.visited:
             self.visited.append(url)
-        
-        soup = self.requestSite(url)
+        try:
+            soup = self.requestSite(url)
+        except:
+            return
         images_url = []
         self.parseImages(soup, url,images_url)
         # for image in images_url:
