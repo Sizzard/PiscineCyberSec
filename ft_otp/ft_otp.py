@@ -76,6 +76,8 @@ def generate_TOTP(fileName):
 
     byte_key = bytes.fromhex(key.strip())
 
+    print(list(byte_key))
+
     byte_timestamp = struct.pack('!Q', int(time.time() / 30))
 
     obj = hmac.new(byte_key, byte_timestamp, 'sha1')
