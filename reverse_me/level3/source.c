@@ -4,52 +4,60 @@
 #include <stdbool.h>
 
 void  ___syscall_malloc() {
-  puts("Nope.")
-  exit(1)
+  puts("Nope.");
+  exit(1);
 }
 
 void ____syscall_malloc() {
-  puts("Good job.") 
+  puts("Good job.") ;
 }
 
 int main(void) {
+  char scanf_res[80];
   char buffer[9];
-
-  printf("Please enter key: ")
-
-  int scanfRet = scanf("%23s", buffer)
-
-  if scanfRet != 1 {
-    ___syscall_malloc()
+  
+  printf("Please enter key: ");
+  int scanf_ret = scanf("%23s", scanf_res);
+  if (scanf_ret != 1) {
+    ___syscall_malloc();
   }
-  if  buffer[1] != '2' {
-    ___syscall_malloc()
+  if (scanf_res[1] != '2') {
+    ___syscall_malloc();
   }
-  if buffer[0] != '4' {
-    ___syscall_malloc()
+  if (scanf_res[0] != '4') {
+    ___syscall_malloc();
   }
-  fflush(stdin)
-
-  int idx = 2;
-  int pos = 0;
-  while true {
-    if (strlen("*")) {
-
+  fflush(stdin);
+  memset(buffer, 0, 9);
+  buffer[0] = '*';
+  int i = 2;
+  int pos = 1;
+  while (true) {
+    int buf_len = strlen(buffer);
+    if (buf_len >= 8) {
+      break;
     }
-    if (strlen(buffer)) {
-
+    int scanf_len = strlen(scanf_res);
+    if (pos >= scanf_len) {
+      break;
     }
-    char atoi_buf[4];
-    atoi_buf[0] = buffer[idx];
-    atoi_buf[1] = buffer[idx++];
-    atoi_buf[2] = buffer[idx++];
-    atoi_buf[3] = 0;  
-    atoi_res = atoi(atoi_buf);
-    buffer[pos] = atoi_res
+    char atoi_ptr[4];
+    atoi_ptr[0] = scanf_res[i];
+    atoi_ptr[1] = scanf_res[i+1];
+    atoi_ptr[2] = scanf_res[i+2];
+    atoi_ptr[3] = 0;
+
+    char atoi_ret = atoi(atoi_ptr);
+    buffer[pos] = atoi_ret;
+    i += 3;
     pos++;
   }
-  if (strcmp("********"), buffer) {
-    ____syscall_malloc()
+  buffer[pos] = 0;
+  if (strcmp(buffer, "********") == 0) {
+    ____syscall_malloc();
+  }
+  else {
+    ___syscall_malloc();
   }
   return 0;
 }
