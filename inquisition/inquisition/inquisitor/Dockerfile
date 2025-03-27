@@ -10,6 +10,6 @@ WORKDIR /bin/
 
 RUN pip install scapy && pip install argparse
 
-ENTRYPOINT [ "python", "inquisitor.py", "10.10.8.3", "02:42:0a:0a:08:03", "10.10.8.2", "02:42:0a:0a:08:02"]
+ENTRYPOINT [ "python", "inquisitor.py", "10.10.8.2", "02:42:0a:0a:08:02", "10.10.8.4", "02:42:0a:0a:08:04"]
 
 # ENTRYPOINT ["/bin/bash", "/bin/script.sh"]

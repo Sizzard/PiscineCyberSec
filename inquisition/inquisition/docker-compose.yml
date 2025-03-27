@@ -1,0 +1,39 @@
+services:
+  ftp_client:
+    container_name: ftp_client
+    build: ./ftp_client
+    networks:
+      all:
+        mac_address: 02:42:0a:0a:08:02
+        ipv4_address: 10.10.8.2
+    cap_add:
+      - NET_ADMIN
+  inquisitor:
+    container_name: inquisitor
+    build: ./inquisitor
+    networks:
+      all:
+        mac_address: 02:42:0a:0a:08:03
+        ipv4_address: 10.10.8.3
+    cap_add:
+      - NET_ADMIN
+  ftp_server:
+    container_name: ftp_server
+    build: ./ftp_server
+    networks:
+      all:
+        mac_address: 02:42:0a:0a:08:04
+        ipv4_address: 10.10.8.4
+    expose:
+    - "21"
+    cap_add:
+      - NET_ADMIN
+
+networks:
+  all:
+    driver: bridge
+    ipam:
+        driver: default
+        config:
+            - subnet: "10.10.8.0/24"
+              # gateway: "10.10.8.1"
